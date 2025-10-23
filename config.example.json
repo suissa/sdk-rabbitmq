@@ -1,0 +1,13 @@
+{
+  "url": "amqp://localhost:5672",
+  "dlq": {
+    "active": true,
+    "ttl": 300000,
+    "maxRetries": 3,
+    "retryDelay": 5000
+  },
+  "logging": {
+    "level": "info",
+    "format": "json"
+  }
+}
