@@ -23,3 +23,24 @@ Para testar:
 - crie um publisher e um subscriber para exchange="whatsapp.message.text" e routingKey="send"
 - acada Agent vai usar esse piblisher enviar seu payload 
 - eosubscriber vai apenas colocar no Log e mostrar no terminal que chegou aquela mensagem
+
+
+Agora crie um script novo usando esse e adicione o 
+
+- PatientBirthDateAgent
+- ScheduleNewAgent
+- ScheduleDateAgent
+- ScheduleDentistAgent
+- ScheduleServiceAgent
+
+- ScheduleNewAgent: que terá a mensagem "Você prefere iniciar escolhendo o que?
+1) A data da consulta
+2) O dentista
+3) O serviço desejado
+"
+
+Se escolher 1 deve ativar o ScheduleDateAgent, depois ativa ScheduleDentistAgent e depois ScheduleServiceAgent
+Se escolher 2 deve ativar o ScheduleDentistAgent, depois ativa ScheduleDateAgent e depois ScheduleServiceAgent
+Se escolher 3 deve ativar o ScheduleServiceAgent, depois ativa ScheduleDentistAgent e depois ScheduleDateAgent
+
+Faça o teste para os 3

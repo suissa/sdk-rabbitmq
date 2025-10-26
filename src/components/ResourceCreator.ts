@@ -96,7 +96,7 @@ export class ResourceCreator implements IResourceCreator {
    */
   public async ensureExchange(
     exchange: string, 
-    type: string = 'direct', 
+    type: string = 'topic', 
     options: ExchangeOptions = {}
   ): Promise<void> {
     if (!exchange) {
@@ -388,7 +388,7 @@ export class ResourceCreator implements IResourceCreator {
    */
   public async ensureExchangeWithValidation(
     exchange: string, 
-    type: string = 'direct', 
+    type: string = 'topic', 
     options: ExchangeOptions = {}
   ): Promise<void> {
     this.validateResourceName(exchange, 'Exchange');

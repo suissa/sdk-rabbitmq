@@ -10,6 +10,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:dynamic-routing": "npm run build && npx ts-node scripts/run-dynamic-routing-test.ts",
+    "test:dynamic-routing:js": "npm run build && node examples/test-dynamic-routing-flow.js",
+    "test:schedule-flow": "npm run build && npx ts-node examples/test-schedule-flow.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
   },

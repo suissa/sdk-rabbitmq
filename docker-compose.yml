@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  sdk_rabbitmq:
+    image: rabbitmq:3-management
+    container_name: sdk_rabbitmq
+    hostname: rabbitmq
+    networks:
+      - whatsapp-network
+    ports:
+      - "5677:5672" # protocolo AMQP
+      - "15677:15672" # UI de gerenciamento
+    environment:
+      RABBITMQ_NODENAME: rabbit@rabbitmq
+      RABBITMQ_ERLANG_COOKIE: "SUPERSECRETCOOKIE"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  whatsapp-network:
+    driver: bridge

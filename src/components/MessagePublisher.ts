@@ -144,7 +144,8 @@ export class MessagePublisher implements IMessagePublisher {
   private async ensureExchangeExists(exchange: string): Promise<void> {
     try {
       // Use ResourceCreator to automatically create exchange if it doesn't exist
-      await this.resourceCreator.ensureExchange(exchange, 'direct');
+      // Always use topic type by default
+      await this.resourceCreator.ensureExchange(exchange, 'topic');
     } catch (error) {
       throw new PublishError(`Failed to ensure exchange '${exchange}' exists`, {
         exchange,

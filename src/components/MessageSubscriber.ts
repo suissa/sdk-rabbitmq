@@ -63,10 +63,30 @@ export class MessageSubscriber implements IMessageSubscriber {
           await channel.prefetch(1);
 
           // Start consuming messages
+          this.logger.info('🎯 SETTING UP CONSUMER', {
+            queue,
+            exchange,
+            routingKey
+          });
+          
           const consumerInfo = await channel.consume(
             queue,
             (message: amqp.ConsumeMessage | null) => {
+              this.logger.info('📥 RAW MESSAGE RECEIVED', {
+                hasMessage: !!message,
+                queue,
+                exchange,
+                routingKey
+              });
+              
               if (message) {
+                this.logger.info('📋 MESSAGE DETAILS', {
+                  exchange: message.fields.exchange,
+                  routingKey: message.fields.routingKey,
+                  deliveryTag: message.fields.deliveryTag,
+                  contentLength: message.content.length
+                });
+                
                 // Add queue name to message headers for DLQ handling
                 if (!message.properties.headers) {
                   message.properties.headers = {};
@@ -74,12 +94,19 @@ export class MessageSubscriber implements IMessageSubscriber {
                 message.properties.headers['x-original-queue'] = queue;
                 
                 this.handleMessage(message, callback, channel);
+              } else {
+                this.logger.warn('⚠️ RECEIVED NULL MESSAGE', { queue });
               }
             },
             {
               noAck: false // We want manual acknowledgment
             }
           );
+          
+          this.logger.info('✅ CONSUMER SETUP COMPLETE', {
+            consumerTag: consumerInfo.consumerTag,
+            queue
+          });
 
           // Store consumer info for cleanup
           this.activeConsumers.set(queue, {
@@ -94,6 +121,11 @@ export class MessageSubscriber implements IMessageSubscriber {
           });
         } catch (error) {
           // Close channel on error
+          this.logger.logError('❌ ERROR DURING CONSUMER SETUP - CLOSING CHANNEL', error as Error, {
+            queue,
+            exchange,
+            routingKey
+          });
           await channel.close();
           throw error;
         }
@@ -160,6 +192,14 @@ export class MessageSubscriber implements IMessageSubscriber {
   ): void {
     const queueName = this.getQueueNameFromMessage(message);
     
+    // Debug log to see if messages are arriving
+    this.logger.info('🔥 MESSAGE RECEIVED IN HANDLER', {
+      exchange: message.fields.exchange,
+      routingKey: message.fields.routingKey,
+      queue: queueName,
+      deliveryTag: message.fields.deliveryTag
+    });
+    
     try {
       // JSON deserialization for incoming messages
       const deserializedPayload = this.deserializeMessage(message);
@@ -196,8 +236,18 @@ export class MessageSubscriber implements IMessageSubscriber {
         }
       };
 
+      // Debug log before invoking callback
+      this.logger.info('🚀 INVOKING USER CALLBACK', {
+        payloadType: typeof deserializedPayload,
+        queue: queueName
+      });
+      
       // Invoke callback with deserialized payload and ack/nack functions
       callback(deserializedPayload, ack, nack);
+      
+      this.logger.info('✅ USER CALLBACK COMPLETED', {
+        queue: queueName
+      });
 
     } catch (error) {
       this.logger.logError('Error handling message', error as Error, {
@@ -304,7 +354,8 @@ export class MessageSubscriber implements IMessageSubscriber {
   ): Promise<void> {
     try {
       // Create exchange if it doesn't exist
-      await this.resourceCreator.ensureExchange(exchange, 'direct');
+      // Always use topic type by default
+      await this.resourceCreator.ensureExchange(exchange, 'topic');
       
       // Create queue if it doesn't exist
       await this.resourceCreator.ensureQueue(queue);
