@@ -28,6 +28,7 @@ describe('ResourceCreator', () => {
       assertExchange: jest.fn().mockResolvedValue(undefined),
       assertQueue: jest.fn().mockResolvedValue(undefined),
       bindQueue: jest.fn().mockResolvedValue(undefined),
+      unbindQueue: jest.fn().mockResolvedValue(undefined),
       checkExchange: jest.fn().mockRejectedValue(new Error('Exchange does not exist')),
       checkQueue: jest.fn().mockRejectedValue(new Error('Queue does not exist')),
       close: jest.fn().mockResolvedValue(undefined)
@@ -310,6 +311,63 @@ describe('ResourceCreator', () => {
 
       await expect(
         resourceCreator.bindQueue('test-queue', 'test-exchange', 'test.key')
+      ).rejects.toThrow(error);
+    });
+  });
+
+  describe('unbindQueue', () => {
+    it('should unbind queue from exchange with routing key', async () => {
+      await resourceCreator.unbindQueue('test-queue', 'test-exchange', 'test.routing.key');
+
+      expect(mockConnectionManager.executeOperation).toHaveBeenCalled();
+      expect(mockConnection.createChannel).toHaveBeenCalled();
+      expect(mockChannel.unbindQueue).toHaveBeenCalledWith(
+        'test-queue',
+        'test-exchange',
+        'test.routing.key'
+      );
+      expect(mockChannel.close).toHaveBeenCalled();
+    });
+
+    it('should remove binding from cache after unbinding', async () => {
+      // First bind
+      await resourceCreator.bindQueue('test-queue', 'test-exchange', 'test.key');
+      
+      // Then unbind
+      await resourceCreator.unbindQueue('test-queue', 'test-exchange', 'test.key');
+
+      // Binding again should call the operation (not use cache)
+      await resourceCreator.bindQueue('test-queue', 'test-exchange', 'test.key');
+
+      expect(mockConnectionManager.executeOperation).toHaveBeenCalledTimes(3);
+      expect(mockChannel.bindQueue).toHaveBeenCalledTimes(2);
+      expect(mockChannel.unbindQueue).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw error for empty queue name', async () => {
+      await expect(
+        resourceCreator.unbindQueue('', 'test-exchange', 'test.key')
+      ).rejects.toThrow('Queue name is required');
+    });
+
+    it('should throw error for empty exchange name', async () => {
+      await expect(
+        resourceCreator.unbindQueue('test-queue', '', 'test.key')
+      ).rejects.toThrow('Exchange name is required');
+    });
+
+    it('should throw error for empty routing key', async () => {
+      await expect(
+        resourceCreator.unbindQueue('test-queue', 'test-exchange', '')
+      ).rejects.toThrow('Routing key is required');
+    });
+
+    it('should handle unbinding failure', async () => {
+      const error = new Error('Unbinding failed');
+      mockChannel.unbindQueue.mockRejectedValue(error);
+
+      await expect(
+        resourceCreator.unbindQueue('test-queue', 'test-exchange', 'test.key')
       ).rejects.toThrow(error);
     });
   });

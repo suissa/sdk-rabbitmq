@@ -29,7 +29,7 @@ export class ConnectionManager implements IConnectionManager {
   private maxReconnectAttempts = 10;
   private baseRetryDelay = 1000; // 1 second
   private maxRetryDelay = 30000; // 30 seconds
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private logger: Logger;
 
   /**
@@ -62,7 +62,7 @@ export class ConnectionManager implements IConnectionManager {
         this.connectionState === ConnectionState.RECONNECTING) {
       // Wait for existing connection attempt
       return new Promise<amqp.Connection>((resolve, reject) => {
-        const checkConnection = () => {
+        const checkConnection = (): void => {
           if (this.connection && this.connectionState === ConnectionState.CONNECTED) {
             resolve(this.connection);
           } else if (this.connectionState === ConnectionState.FAILED) {
@@ -179,14 +179,15 @@ export class ConnectionManager implements IConnectionManager {
 
     // Queue operation and wait for reconnection
     return new Promise<T>((resolve, reject) => {
-      this.queueOperation(async () => {
+      const wrappedOperation = async (): Promise<void> => {
         try {
           const result = await operation();
           resolve(result);
         } catch (error) {
           reject(error);
         }
-      });
+      };
+      this.queueOperation(wrappedOperation);
     });
   }
 
@@ -285,12 +286,26 @@ export class ConnectionManager implements IConnectionManager {
       
       try {
         this.logger.logOperation('reconnect', `Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-        await this.connect();
+        
+        // Set state to connecting before attempting connection
+        this.connectionState = ConnectionState.CONNECTING;
+        this.connection = await amqp.connect(this.config.url) as unknown as amqp.Connection;
+        this.connectionState = ConnectionState.CONNECTED;
+
+        this.logger.logConnectionState(ConnectionState.CONNECTED, { url: this.config.url });
+
+        // Set up connection event handlers
+        this.setupConnectionEventHandlers();
+
+        // Process queued operations
+        await this.processQueuedOperations();
+
         this.logger.info('Successfully reconnected to RabbitMQ', {
           queuedOperations: this.operationQueue.length,
           attempt: this.reconnectAttempts
         });
       } catch (error) {
+        this.connectionState = ConnectionState.RECONNECTING;
         this.logger.logError(`Reconnection attempt ${this.reconnectAttempts} failed`, error as Error, {
           attempt: this.reconnectAttempts,
           maxAttempts: this.maxReconnectAttempts

@@ -1,4 +1,4 @@
-import * as amqp from 'amqplib';
+// amqplib types are used via ConnectionManager
 import { IResourceCreator, QueueOptions, ExchangeOptions } from '../interfaces/IResource';
 import { ConnectionManager } from './ConnectionManager';
 import { Logger } from './Logger';
@@ -271,6 +271,56 @@ export class ResourceCreator implements IResourceCreator {
         });
       } catch (error) {
         this.logger.logError(`Failed to bind queue to exchange`, error as Error, { 
+          queue, 
+          exchange, 
+          routingKey 
+        });
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Unbind queue from exchange with routing key
+   * @param queue Queue name
+   * @param exchange Exchange name
+   * @param routingKey Routing key for unbinding
+   */
+  public async unbindQueue(queue: string, exchange: string, routingKey: string): Promise<void> {
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
+    if (!exchange) {
+      throw new Error('Exchange name is required');
+    }
+    if (!routingKey) {
+      throw new Error('Routing key is required');
+    }
+
+    const bindingKey = `${queue}:${exchange}:${routingKey}`;
+
+    return this.connectionManager.executeOperation(async () => {
+      const connection = this.connectionManager.getConnection();
+      if (!connection) {
+        throw new Error('No active connection to RabbitMQ');
+      }
+
+      try {
+        const channel = await (connection as any).createChannel();
+        
+        await channel.unbindQueue(queue, exchange, routingKey);
+        await channel.close();
+
+        // Remove from cache if it exists
+        this.createdBindings.delete(bindingKey);
+        
+        this.logger.logOperation('unbindQueue', `Queue unbound from exchange successfully`, {
+          queue,
+          exchange,
+          routingKey
+        });
+      } catch (error) {
+        this.logger.logError(`Failed to unbind queue from exchange`, error as Error, { 
           queue, 
           exchange, 
           routingKey 

@@ -139,7 +139,7 @@ describe('ConfigurationManager', () => {
 
       try {
         configManager.loadConfig();
-        fail('Expected ConfigurationError to be thrown');
+        throw new Error('Expected ConfigurationError to be thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(ConfigurationError);
         expect((error as ConfigurationError).context).toEqual({

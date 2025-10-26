@@ -15,6 +15,12 @@ export interface ISdkRabbitmq {
     callback: MessageCallback
   ): Promise<void>;
   
+  /** Bind a queue to an exchange with a routing key */
+  bind(queue: string, exchange: string, routingKey: string): Promise<void>;
+  
+  /** Unbind a queue from an exchange with a routing key */
+  unbind(queue: string, exchange: string, routingKey: string): Promise<void>;
+  
   /** Disconnect from RabbitMQ gracefully */
   disconnect(): Promise<void>;
 }

@@ -60,7 +60,7 @@ export class SdkRabbitmq implements ISdkRabbitmq {
     if (SdkRabbitmq.isInitializing) {
       // Wait for initialization to complete
       return new Promise<SdkRabbitmq>((resolve) => {
-        const checkInitialization = () => {
+        const checkInitialization = (): void => {
           if (SdkRabbitmq.instance && SdkRabbitmq.instance.isInitialized && !SdkRabbitmq.isInitializing) {
             resolve(SdkRabbitmq.instance);
           } else {
@@ -314,10 +314,108 @@ export class SdkRabbitmq implements ISdkRabbitmq {
   }
 
   /**
+   * Validate bind/unbind method parameters
+   * @param queue Queue name
+   * @param exchange Exchange name
+   * @param routingKey Routing key
+   */
+  private validateBindParameters(queue: string, exchange: string, routingKey: string): void {
+    if (!queue || typeof queue !== 'string') {
+      throw new Error('Queue parameter is required and must be a non-empty string');
+    }
+
+    if (!exchange || typeof exchange !== 'string') {
+      throw new Error('Exchange parameter is required and must be a non-empty string');
+    }
+
+    if (!routingKey || typeof routingKey !== 'string') {
+      throw new Error('RoutingKey parameter is required and must be a non-empty string');
+    }
+  }
+
+  /**
    * Get SDK initialization status
    */
   public isReady(): boolean {
     return this.isInitialized && this.connectionManager?.isConnected();
+  }
+
+  /**
+   * Bind a queue to an exchange with a routing key
+   * @param queue Queue name (required)
+   * @param exchange Exchange name (required)
+   * @param routingKey Routing key for binding (required)
+   */
+  public async bind(queue: string, exchange: string, routingKey: string): Promise<void> {
+    // Parameter validation at API level
+    this.validateBindParameters(queue, exchange, routingKey);
+
+    if (!this.isInitialized) {
+      throw new Error('SDK is not initialized. Please wait for initialization to complete.');
+    }
+
+    try {
+      this.logger.logOperation('bind', 'Binding queue to exchange', {
+        queue,
+        exchange,
+        routingKey
+      });
+
+      // Delegate to ResourceCreator
+      await this.resourceCreator.bindQueue(queue, exchange, routingKey);
+      
+      this.logger.logOperation('bind', 'Queue bound to exchange successfully', {
+        queue,
+        exchange,
+        routingKey
+      });
+    } catch (error) {
+      this.logger.logError('Failed to bind queue to exchange', error as Error, {
+        queue,
+        exchange,
+        routingKey
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Unbind a queue from an exchange with a routing key
+   * @param queue Queue name (required)
+   * @param exchange Exchange name (required)
+   * @param routingKey Routing key for unbinding (required)
+   */
+  public async unbind(queue: string, exchange: string, routingKey: string): Promise<void> {
+    // Parameter validation at API level
+    this.validateBindParameters(queue, exchange, routingKey);
+
+    if (!this.isInitialized) {
+      throw new Error('SDK is not initialized. Please wait for initialization to complete.');
+    }
+
+    try {
+      this.logger.logOperation('unbind', 'Unbinding queue from exchange', {
+        queue,
+        exchange,
+        routingKey
+      });
+
+      // Delegate to ResourceCreator
+      await this.resourceCreator.unbindQueue(queue, exchange, routingKey);
+      
+      this.logger.logOperation('unbind', 'Queue unbound from exchange successfully', {
+        queue,
+        exchange,
+        routingKey
+      });
+    } catch (error) {
+      this.logger.logError('Failed to unbind queue from exchange', error as Error, {
+        queue,
+        exchange,
+        routingKey
+      });
+      throw error;
+    }
   }
 
   /**

@@ -1,4 +1,4 @@
-import * as amqp from 'amqplib';
+// amqplib types are used via ConnectionManager
 import { IMessagePublisher } from '../interfaces/IMessage';
 import { PublishError } from '../interfaces/IErrors';
 import { ConnectionManager } from './ConnectionManager';

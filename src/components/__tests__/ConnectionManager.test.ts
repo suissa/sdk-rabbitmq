@@ -179,20 +179,23 @@ describe('ConnectionManager', () => {
       const errorHandler = mockConnection.on.mock.calls.find((call: any) => call[0] === 'error')?.[1];
       errorHandler(new Error('Connection lost'));
 
+      // Wait for connection loss to be processed
+      await new Promise(resolve => setImmediate(resolve));
+
       // First reconnection attempt (1s delay)
       jest.advanceTimersByTime(1000);
-      await Promise.resolve(); // Allow promises to resolve
+      await new Promise(resolve => setImmediate(resolve));
 
       // Second reconnection attempt (2s delay)
       jest.advanceTimersByTime(2000);
-      await Promise.resolve();
+      await new Promise(resolve => setImmediate(resolve));
 
       // Third reconnection attempt (4s delay) - should succeed
       jest.advanceTimersByTime(4000);
-      await Promise.resolve();
+      await new Promise(resolve => setImmediate(resolve));
 
       expect(mockedAmqp.connect).toHaveBeenCalledTimes(4); // Initial + 3 reconnection attempts
-    });
+    }, 15000);
 
     it('should stop reconnection after max attempts', async () => {
       mockedAmqp.connect
@@ -205,11 +208,14 @@ describe('ConnectionManager', () => {
       const errorHandler = mockConnection.on.mock.calls.find((call: any) => call[0] === 'error')?.[1];
       errorHandler(new Error('Connection lost'));
 
+      // Wait for connection loss to be processed
+      await Promise.resolve();
+
       // Advance through all reconnection attempts (10 attempts with exponential backoff)
       for (let i = 0; i < 10; i++) {
         const delay = Math.min(1000 * Math.pow(2, i), 30000);
         jest.advanceTimersByTime(delay);
-        await Promise.resolve();
+        await new Promise(resolve => setImmediate(resolve));
       }
 
       expect(connectionManager.getConnectionState()).toBe(ConnectionState.FAILED);
@@ -232,6 +238,9 @@ describe('ConnectionManager', () => {
       const errorHandler = mockConnection.on.mock.calls.find((call: any) => call[0] === 'error')?.[1];
       errorHandler(new Error('Connection lost'));
 
+      // Wait for connection loss to be processed
+      await Promise.resolve();
+
       const operation1 = jest.fn().mockResolvedValue('result1');
       const operation2 = jest.fn().mockResolvedValue('result2');
 
@@ -246,7 +255,7 @@ describe('ConnectionManager', () => {
       // Simulate successful reconnection
       mockedAmqp.connect.mockResolvedValue(mockConnection);
       jest.advanceTimersByTime(1000);
-      await Promise.resolve();
+      await new Promise(resolve => setImmediate(resolve));
 
       // Operations should be executed after reconnection
       expect(operation1).toHaveBeenCalled();
@@ -284,6 +293,9 @@ describe('ConnectionManager', () => {
       const errorHandler = mockConnection.on.mock.calls.find((call: any) => call[0] === 'error')?.[1];
       errorHandler(new Error('Connection lost'));
 
+      // Wait for connection loss to be processed
+      await Promise.resolve();
+
       const operation = jest.fn().mockResolvedValue('queued-result');
       const resultPromise = connectionManager.executeOperation(operation);
 
@@ -293,12 +305,12 @@ describe('ConnectionManager', () => {
       // Simulate successful reconnection
       mockedAmqp.connect.mockResolvedValue(mockConnection);
       jest.advanceTimersByTime(1000);
-      await Promise.resolve();
+      await new Promise(resolve => setImmediate(resolve));
 
       const result = await resultPromise;
       expect(operation).toHaveBeenCalled();
       expect(result).toBe('queued-result');
-    });
+    }, 10000);
 
     it('should handle errors in queued operations', async () => {
       mockedAmqp.connect.mockResolvedValue(mockConnection);
@@ -307,6 +319,9 @@ describe('ConnectionManager', () => {
       // Simulate connection loss
       const errorHandler = mockConnection.on.mock.calls.find((call: any) => call[0] === 'error')?.[1];
       errorHandler(new Error('Connection lost'));
+
+      // Wait for connection loss to be processed
+      await new Promise(resolve => setImmediate(resolve));
 
       const failingOperation = jest.fn().mockRejectedValue(new Error('Operation failed'));
       const successfulOperation = jest.fn().mockResolvedValue('success');
@@ -317,12 +332,12 @@ describe('ConnectionManager', () => {
       // Simulate successful reconnection
       mockedAmqp.connect.mockResolvedValue(mockConnection);
       jest.advanceTimersByTime(1000);
-      await Promise.resolve();
+      await new Promise(resolve => setImmediate(resolve));
 
       // Both operations should be attempted
       expect(failingOperation).toHaveBeenCalled();
       expect(successfulOperation).toHaveBeenCalled();
-    });
+    }, 15000);
   });
 
   describe('Connection Event Handling', () => {

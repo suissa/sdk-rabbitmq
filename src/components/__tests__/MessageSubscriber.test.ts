@@ -66,6 +66,7 @@ describe('MessageSubscriber', () => {
       ensureExchange: jest.fn().mockResolvedValue(undefined),
       ensureQueue: jest.fn().mockResolvedValue(undefined),
       bindQueue: jest.fn().mockResolvedValue(undefined),
+      unbindQueue: jest.fn().mockResolvedValue(undefined),
     } as any;
 
     // Setup mock DLQHandler

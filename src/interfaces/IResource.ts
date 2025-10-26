@@ -29,4 +29,7 @@ export interface IResourceCreator {
   
   /** Bind queue to exchange with routing key */
   bindQueue(queue: string, exchange: string, routingKey: string): Promise<void>;
+  
+  /** Unbind queue from exchange with routing key */
+  unbindQueue(queue: string, exchange: string, routingKey: string): Promise<void>;
 }

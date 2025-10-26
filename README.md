@@ -127,6 +127,12 @@ async function main() {
     }
   );
 
+  // Bind queue to exchange (optional - subscribe already does this automatically)
+  await sdk.bind('user-notifications', 'user-events', 'user.updated');
+
+  // Unbind queue from exchange
+  await sdk.unbind('user-notifications', 'user-events', 'user.updated');
+
   // Graceful shutdown
   await sdk.disconnect();
 }
@@ -156,6 +162,11 @@ async function advancedExample() {
     sdk.subscribe('users', 'user-analytics', 'user.*', handleUserEvents)
   ]);
 
+  // Manual queue binding (useful for complex routing scenarios)
+  await sdk.bind('analytics-queue', 'events', 'user.login');
+  await sdk.bind('analytics-queue', 'events', 'user.logout');
+  await sdk.bind('notifications-queue', 'orders', 'order.*');
+
   // Bulk publishing
   const messages = [
     { exchange: 'orders', routingKey: 'order.created', payload: { orderId: 1 } },
@@ -166,6 +177,9 @@ async function advancedExample() {
   for (const msg of messages) {
     await sdk.publish(msg.exchange, msg.routingKey, msg.payload);
   }
+
+  // Unbind when no longer needed
+  await sdk.unbind('analytics-queue', 'events', 'user.login');
 }
 
 function handleOrderCreated(message: any, ack: () => void, nack: () => void) {
@@ -183,6 +197,34 @@ function handleUserEvents(message: any, ack: () => void, nack: () => void) {
   ack();
 }
 ```
+
+### Queue Binding Management
+
+```typescript
+import { SdkRabbitmq } from 'sdk-rabbitmq';
+
+async function bindingExample() {
+  const sdk = await SdkRabbitmq.getInstance();
+
+  // Bind queue to exchange with specific routing key
+  await sdk.bind('notifications', 'events', 'user.created');
+  await sdk.bind('notifications', 'events', 'user.updated');
+  
+  // Bind to multiple exchanges
+  await sdk.bind('analytics', 'user-events', 'user.*');
+  await sdk.bind('analytics', 'order-events', 'order.*');
+  
+  // Topic exchange patterns
+  await sdk.bind('logs', 'system-logs', 'error.#');    // All error logs
+  await sdk.bind('alerts', 'system-logs', '*.critical'); // Critical from any service
+  
+  // Remove bindings when no longer needed
+  await sdk.unbind('notifications', 'events', 'user.updated');
+  await sdk.unbind('analytics', 'user-events', 'user.*');
+}
+```
+
+**Note**: The `subscribe()` method automatically creates the necessary bindings, so manual binding is only needed for advanced routing scenarios or when you want to bind queues without immediately consuming from them.
 
 ### Error Handling
 

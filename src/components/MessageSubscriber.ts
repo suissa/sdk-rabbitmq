@@ -165,7 +165,7 @@ export class MessageSubscriber implements IMessageSubscriber {
       const deserializedPayload = this.deserializeMessage(message);
 
       // Create ack/nack functions for callback
-      const ack = () => {
+      const ack = (): void => {
         try {
           channel.ack(message);
         } catch (error) {
@@ -176,7 +176,7 @@ export class MessageSubscriber implements IMessageSubscriber {
         }
       };
 
-      const nack = async () => {
+      const nack = async (): Promise<void> => {
         try {
           await this.handleFailedMessage(message, queueName, channel);
         } catch (error) {

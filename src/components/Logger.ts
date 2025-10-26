@@ -144,7 +144,13 @@ export class Logger implements ILogger {
       };
       
       if (context) {
-        logEntry.context = context;
+        try {
+          // Test if context can be serialized
+          JSON.stringify(context);
+          logEntry.context = context;
+        } catch (error) {
+          logEntry.context = '[Circular Reference]';
+        }
       }
       
       if (this.component) {
@@ -155,7 +161,14 @@ export class Logger implements ILogger {
     } else {
       // Text format
       const componentPrefix = this.component ? `[${this.component}] ` : '';
-      const contextSuffix = context ? ` | Context: ${JSON.stringify(context)}` : '';
+      let contextSuffix = '';
+      if (context) {
+        try {
+          contextSuffix = ` | Context: ${JSON.stringify(context)}`;
+        } catch (error) {
+          contextSuffix = ` | Context: [Circular Reference]`;
+        }
+      }
       
       const logMessage = `${timestamp} [${levelName}] ${componentPrefix}${message}${contextSuffix}`;
       
