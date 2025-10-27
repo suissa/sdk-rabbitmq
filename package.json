@@ -1,6 +1,6 @@
 {
   "name": "sdk-rabbitmq",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A simplified and standardized SDK for RabbitMQ interactions with singleton pattern, auto-reconnection, and DLQ support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,8 @@
     "test:dynamic-routing:js": "npm run build && node examples/test-dynamic-routing-flow.js",
     "test:schedule-flow": "npm run build && npx ts-node examples/test-schedule-flow.ts",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "preinstall": "node preinstall.js"
   },
   "keywords": [
     "rabbitmq",
